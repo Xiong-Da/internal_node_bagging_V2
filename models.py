@@ -62,7 +62,7 @@ def getSmallRGBImageModel(image,modelWidth,classNum,activateFun,dropoutType, gro
         output = poolingFeature(output, layerIndex)
 
     convShape = output.shape.as_list()
-    print("last feature map size:"+str(convShape))
+    #print("last feature map size:"+str(convShape))
     output = tf.layers.average_pooling2d(output, convShape[1], convShape[1])
 
     output = tf.reshape(output, [-1, convShape[-1]])

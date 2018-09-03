@@ -131,11 +131,13 @@ def trainModel(session, trainDataItertor, validateDataIterator, tuner, tensorMap
                 testErr = computErr(session, testDataIterator, tensorMap)
                 logFile.write(str(step) + " " + str(testErr) + "\n")
 
-            step += 1
+
 
             # dont't break carefuly inited weights at the begining of training
             if perAverageStep!=None and step % perAverageStep == 0:
                 session.run(averageOps)
+
+            step += 1
 
         session.run(combineOps)
         validateErr = computErr(session, validateDataIterator, tensorMap)
@@ -199,7 +201,7 @@ def testParam(modelFunName, activateFunName, datasetName, modelWidth, dropoutTyp
     modelFun=getModelFun(modelFunName)
     logits,combineOps, averageOps=modelFun(imagePlaceholder, modelWidth, dataset.getDatasetClassNum(datasetName),
                                            getActivateFun(activateFunName), dropoutType, groupNum, keepProb, isTrainPlaceholder)
-    loss = tf.losses.sparse_softmax_cross_entropy(labels=labelPlaceholder, logits=logits) + getL2Loss()
+    loss = tf.losses.sparse_softmax_cross_entropy(labels=labelPlaceholder, logits=logits)
     predictions = tf.cast(tf.argmax(logits, axis=1), tf.int32)
     accuracy = tf.reduce_mean(tf.cast(tf.equal(predictions, labelPlaceholder), tf.float32))
 
@@ -317,13 +319,13 @@ def getMNISTParam():
                                    datasetName,modelWidth, dropoutType, groupNum, keepProb,batchSize,perAverageEpoch)
 
 def getRGBImageDatasetParam():
-    datasetName=["CIFAR_10","SVHN"]
+    datasetName=["SVHN"]
     modelWidth=[0.25,0.5,1]
-    dropoutType=["probOut", "singleOut"]
+    dropoutType=["probOut","singleOut"]
     groupNum=[1,2,4]
     keepProb=[0.5]
     batchSize=[256]
-    perAverageEpoch=[20]
+    perAverageEpoch=[10]
 
     return computeParamCombination(["CNN"],["relu"],
                                    datasetName,modelWidth, dropoutType, groupNum, keepProb,batchSize,perAverageEpoch)
