@@ -49,6 +49,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 colorMap = {1: "blue", 2: "green", 4: "orange", 8: "red"}
+methodName={"probOut":"method A","singleOut":"method B"}
 lineStyleMap={"probOut":'-', "singleOut":'--'}
 
 FONT_SIZE=12
@@ -79,18 +80,18 @@ def visualizeDiffMethods():
     
     dropType="singleOut"
     for groupNum in groupNumList:
-        curveName="group size"+str(groupNum)
+        curveName="group size "+str(groupNum)
         y=getErrsOfDiffMethodsWithDiffWidth("fullConnected","relu","MNIST",
                                             modelWidthList,dropType,groupNum,keepProb,batchSize,perAverageEpoch)
         print(curveName+":"+str(y))
         plt.plot(modelWidthList,y,color=colorMap[groupNum],label=curveName,linewidth=LINE_WIDTH)
 
-    plt.ylim(0.01,0.025)
+    plt.ylim(0.012,0.025)
     plt.xticks(modelWidthList)
 
     plt.ylabel("test error", fontsize=FONT_SIZE)
     plt.xlabel("model width", fontsize=FONT_SIZE)
-    plt.title(dropType, fontsize=FONT_SIZE)
+    plt.title(methodName[dropType], fontsize=FONT_SIZE)
 
     plt.legend(fontsize=FONT_SIZE)
     plt.show()
@@ -111,11 +112,11 @@ def visualizeWeightAverage():
     batchSize = 256
     perAverageEpochList = [5,10,20,50,100,200]
 
-    modelWidth=256
+    modelWidth=64
 
     for dropType in dropoutTypeList:
         for groupNum in groupNumList:
-            curveName = dropType+" " + str(groupNum)
+            curveName = methodName[dropType]+", " + str(groupNum)
             y = getErrsOfDiffMethodsWithDiffAverage("fullConnected", "relu", "MNIST",
                                                   modelWidth, dropType, groupNum, keepProb, batchSize, perAverageEpochList)
             print(curveName + ":" + str(y))
@@ -176,7 +177,7 @@ def visualizeCoverge():
 
     for dropType in dropoutTypeList:
         for groupNum in groupNumList:
-            curveName = dropType+" " + str(groupNum)
+            curveName = methodName[dropType]+", " + str(groupNum)
             x,y = getConvergeData( modelWidth, dropType, groupNum, keepProb, batchSize, perAverageEpoch)
             plt.plot(x, y, color=colorMap[groupNum], label=curveName, linewidth=LINE_WIDTH,linestyle=lineStyleMap[dropType])
 
@@ -203,20 +204,20 @@ def visualizeRGBImgResult():
     perAverageEpoch = 20
 
     dropType = "singleOut"
-    dataset="SVHN"
+    dataset="CIFAR_10"
     for groupNum in groupNumList:
-        curveName = "group size" + str(groupNum)
+        curveName = "group size " + str(groupNum)
         y = getErrsOfDiffMethodsWithDiffWidth("CNN", "relu", dataset,
                                               modelWidthList, dropType, groupNum, keepProb, batchSize, perAverageEpoch)
         print(curveName + ":" + str(y))
         plt.plot(modelWidthList, y, color=colorMap[groupNum], label=curveName, linewidth=LINE_WIDTH)
 
-    #plt.ylim(0.01, 0.025)
+    plt.ylim(0.1, 0.3)
     plt.xticks(modelWidthList)
 
     plt.ylabel("test error", fontsize=FONT_SIZE)
     plt.xlabel("model width", fontsize=FONT_SIZE)
-    plt.title(dropType, fontsize=FONT_SIZE)
+    plt.title(methodName[dropType], fontsize=FONT_SIZE)
 
     plt.legend(fontsize=FONT_SIZE)
     plt.show()
@@ -226,10 +227,11 @@ def visualizeRGBImgResult():
 if __name__ == "__main__":
     loadTestErr("./result/fix_full.csv")
     loadTestErr("./result/fix_weight_avg_test.csv")
-    loadTestErr("./result/2018_09_01 11_40_43.csv")
+    loadTestErr("./result/CIFAR_10.csv")
+    loadTestErr("./result/SVHN.csv")
     printLowestErr()
     print("\n" + "*" * 10)
     #visualizeDiffMethods()
     #visualizeWeightAverage()
-    #visualizeCoverge()
-    visualizeRGBImgResult()
+    visualizeCoverge()
+    #visualizeRGBImgResult()

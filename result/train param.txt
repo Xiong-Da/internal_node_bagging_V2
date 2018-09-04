@@ -1,5 +1,6 @@
 mnist:
 without l2 norm, fix getFixLearningRateTuner([10,10],[1e-3,1e-4],isEarlyStop=False)
 
-CIFAR_10:
+RGB image:
 localAutoTuner=utils.LocalLearningRateTuner(STARTLREANINGRATE,maxDontSave=7), STARTLREANINGRATE=1e-3
+(SVHN:perAverageEpoch = 10)
