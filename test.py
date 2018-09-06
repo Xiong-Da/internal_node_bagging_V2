@@ -9,16 +9,16 @@ import models
 import utils
 
 #############################################################
-PARALLEL_RANK=2
-GPU_MEMORY_USE=0.8
+PARALLEL_RANK=8
+GPU_MEMORY_USE=0.6
 
 WEIGHT_DECAY=0
 STARTLREANINGRATE=1e-3
 VALIDATE_RATE=0.2
 EPOCHSPERCHECK=10
 
-TEST_TIMES=1
-USE_AUTO_TUNER=True
+TEST_TIMES=3
+USE_AUTO_TUNER=False
 IS_RETRAIN_ON_ALL_TRAINSET=True
 ##############################################################
 
@@ -86,10 +86,15 @@ def computErr(session, dataItertor, tensorMap):
         accCount+=sum((predictLabel==labels).astype(np.int32))
     return 1-((accCount*1.0)/dataCount)
 
-def trainModel(session, trainDataItertor, validateDataIterator, tuner, tensorMap, perAverageStep,modelPath,logDir,testDataIterator=None):
+def trainModel(session, trainDataItertor, validateDataIterator, tuner, tensorMap, perAverageEpoch,modelPath,logDir,testDataIterator=None):
     step = 0
     validateErr=0.01
     curLearningRate = tuner.getLearningRate()
+
+    if perAverageEpoch!=None:
+        perAverageStep = int(perAverageEpoch * trainDataItertor.getDatasetSize() / trainDataItertor.getBatchSize())
+    else:
+        perAverageStep=None
 
     loss=tensorMap["loss"]
     accuracy=tensorMap["accuracy"]
@@ -112,6 +117,9 @@ def trainModel(session, trainDataItertor, validateDataIterator, tuner, tensorMap
 
     while True:
         for images, labels in trainDataItertor.getNextBatch():
+            if perAverageStep!=None and step % perAverageStep == 0:
+                session.run(averageOps)
+
             r = session.run([loss, accuracy, merged, trainOp],
                             feed_dict={learningRatePlaceholder: curLearningRate,
                                        imagePlaceholder: images,
@@ -130,12 +138,6 @@ def trainModel(session, trainDataItertor, validateDataIterator, tuner, tensorMap
                 session.run(combineOps)
                 testErr = computErr(session, testDataIterator, tensorMap)
                 logFile.write(str(step) + " " + str(testErr) + "\n")
-
-
-
-            # dont't break carefuly inited weights at the begining of training
-            if perAverageStep!=None and step % perAverageStep == 0:
-                session.run(averageOps)
 
             step += 1
 
@@ -193,10 +195,6 @@ def testParam(modelFunName, activateFunName, datasetName, modelWidth, dropoutTyp
     isTrainPlaceholder=tf.placeholder(tf.bool)
     learningRatePlaceholder = tf.placeholder(tf.float32, name="learningRate")
     validateErrPlaceholder = tf.placeholder(tf.float32)
-    if perAverageEpoch!=None:
-        perAverageStep = int(perAverageEpoch * len(temp_train_data) / batchSize)
-    else:
-        perAverageStep=None
 
     modelFun=getModelFun(modelFunName)
     logits,combineOps, averageOps=modelFun(imagePlaceholder, modelWidth, dataset.getDatasetClassNum(datasetName),
@@ -245,14 +243,14 @@ def testParam(modelFunName, activateFunName, datasetName, modelWidth, dropoutTyp
     localAutoTuner=utils.LocalLearningRateTuner(STARTLREANINGRATE,maxDontSave=7)
     autoTuners=[localAutoTuner]
 
-    # fixTuner1 = utils.getFixLearningRateTuner([10,10],[1e-3,1e-4],isEarlyStop=False)
-    # supConfigs.append((fixTuner1, allTrainDataIterator,testDataIterator))
+    fixTuner1 = utils.getFixLearningRateTuner([10,10],[1e-3,1e-4],isEarlyStop=False)
+    supConfigs.append((fixTuner1, allTrainDataIterator,testDataIterator))
 
     #find train param base on validate data
     if USE_AUTO_TUNER:
         for autoTuner in autoTuners:
             session.run([tf.global_variables_initializer()])
-            trainModel(session, partTrainDataIterator, validateDataIterator, autoTuner, tensorMap, perAverageStep,
+            trainModel(session, partTrainDataIterator, validateDataIterator, autoTuner, tensorMap, perAverageEpoch,
                     modelPath, logDir)
             saver.restore(session, modelPath)  # load early stop model
             errs.append(computErr(session, testDataIterator, tensorMap))
@@ -262,7 +260,7 @@ def testParam(modelFunName, activateFunName, datasetName, modelWidth, dropoutTyp
 
     for tuner,trainIterator,validateIterator in supConfigs:
         session.run([tf.global_variables_initializer()])
-        trainModel(session, trainIterator, validateIterator, tuner, tensorMap, perAverageStep, modelPath, logDir)
+        trainModel(session, trainIterator, validateIterator, tuner, tensorMap, perAverageEpoch, modelPath, logDir)
         saver.restore(session,modelPath)    #load model
         errs.append(computErr(session, testDataIterator, tensorMap))
 
@@ -308,12 +306,12 @@ def computeParamCombination(modelFunName, activateFunName, datasetName, modelWid
 
 def getMNISTParam():
     datasetName = ["MNIST"]
-    modelWidth = [64,256]
+    modelWidth = [64,256,1024]
     dropoutType = ["probOut", "singleOut"]
-    groupNum = [1,2,4]
+    groupNum = [2,4]
     keepProb = [0.5]
     batchSize = [256]
-    perAverageEpoch=[20]
+    perAverageEpoch=[5,10,20,50,100,200]
 
     return computeParamCombination(["fullConnected"],["relu"],
                                    datasetName,modelWidth, dropoutType, groupNum, keepProb,batchSize,perAverageEpoch)
@@ -366,8 +364,8 @@ def workThread(getTaskFun,returnResultFun):
             print(str(e))
 
 def main():
-    #allArgsList = getMNISTParam()
-    allArgsList = getRGBImageDatasetParam()
+    allArgsList = getMNISTParam()
+    #allArgsList = getRGBImageDatasetParam()
     resultMap = {}
 
     print("\ntest param:")

@@ -62,6 +62,12 @@ class DatasetLiterator:
         if batchSize>len(images):
             raise Exception("too big batch size")
 
+    def getDatasetSize(self):
+        return len(self.labels)
+
+    def getBatchSize(self):
+        return self.batchSize
+
     def getNextBatch(self):
         index=[]
 

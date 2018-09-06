@@ -50,13 +50,13 @@ import matplotlib.pyplot as plt
 
 colorMap = {1: "blue", 2: "green", 4: "orange", 8: "red"}
 methodName={"probOut":"method A","singleOut":"method B"}
-lineStyleMap={"probOut":'-', "singleOut":'--'}
+lineStyleMap={"probOut":'-', "singleOut":'--',64:"-",256:"--"}
 
-FONT_SIZE=12
+FONT_SIZE=14
 LINE_WIDTH=3.0
 
 plt.tight_layout()
-plt.subplots_adjust(left=0.12,bottom=0.1,right=0.98,top=0.95)
+plt.subplots_adjust(left=0.13,bottom=0.11,right=0.98,top=0.93)
 
 matplotlib.rcParams['ps.useafm']=True
 matplotlib.rcParams['pdf.use14corefonts']=True
@@ -73,7 +73,7 @@ def visualizeDiffMethods():
     #modelWidthList=[64,128,256,512,1024]
     modelWidthList = [64, 128, 256, 512, 1024]
     dropoutTypeList=["probOut", "singleOut"]
-    groupNumList=[1,2,4,8]
+    groupNumList=[1,2,4]
     keepProb=0.5
     batchSize=256
     perAverageEpoch=20
@@ -86,16 +86,16 @@ def visualizeDiffMethods():
         print(curveName+":"+str(y))
         plt.plot(modelWidthList,y,color=colorMap[groupNum],label=curveName,linewidth=LINE_WIDTH)
 
-    plt.ylim(0.012,0.025)
-    plt.xticks(modelWidthList)
+    plt.ylim(0.01,0.03)
+    plt.xticks(modelWidthList, fontsize=FONT_SIZE)
+    plt.yticks([0.01, 0.02, 0.03], fontsize=FONT_SIZE)
 
     plt.ylabel("test error", fontsize=FONT_SIZE)
     plt.xlabel("model width", fontsize=FONT_SIZE)
-    plt.title(methodName[dropType], fontsize=FONT_SIZE)
+    plt.title("MNIST", fontsize=FONT_SIZE)
 
     plt.legend(fontsize=FONT_SIZE)
     plt.show()
-
 
 def getErrsOfDiffMethodsWithDiffAverage(modelFunName, activateFunName, datasetName, modelWidth, dropoutType, groupNum, keepProb, batchSize,perAverageEpochList):
     errs=[]
@@ -112,22 +112,24 @@ def visualizeWeightAverage():
     batchSize = 256
     perAverageEpochList = [5,10,20,50,100,200]
 
-    modelWidth=64
+    modelWidth=1024
 
     for dropType in dropoutTypeList:
         for groupNum in groupNumList:
-            curveName = methodName[dropType]+", " + str(groupNum)
+            curveName = methodName[dropType]+", group size " + str(groupNum)
             y = getErrsOfDiffMethodsWithDiffAverage("fullConnected", "relu", "MNIST",
                                                   modelWidth, dropType, groupNum, keepProb, batchSize, perAverageEpochList)
             print(curveName + ":" + str(y))
             plt.plot(perAverageEpochList, y, color=colorMap[groupNum], label=curveName, linewidth=LINE_WIDTH,linestyle=lineStyleMap[dropType])
 
     plt.ylim(0.01, 0.05)
-    plt.xticks(perAverageEpochList)
+
+    plt.xticks(perAverageEpochList[1:], fontsize=FONT_SIZE-2)
+    plt.yticks([0.01,0.02,0.03,0.04,0.05], fontsize=FONT_SIZE-2)
 
     plt.ylabel("test error", fontsize=FONT_SIZE)
-    plt.xlabel("epoch", fontsize=FONT_SIZE)
-    plt.title("model width " + str(modelWidth), fontsize=FONT_SIZE)
+    plt.xlabel("wight average frequency(epochs)", fontsize=FONT_SIZE)
+    plt.title("model width "+str(modelWidth), fontsize=FONT_SIZE)
 
     plt.legend(fontsize=FONT_SIZE)
     plt.show()
@@ -197,14 +199,18 @@ def visualizeRGBImgResult():
     datasetList=["CIFAR_10","SVHN"]
 
     modelWidthList = [0.25,0.5,1]
-
     groupNumList = [1, 2, 4]
     keepProb = 0.5
     batchSize = 256
-    perAverageEpoch = 20
 
     dropType = "singleOut"
     dataset="CIFAR_10"
+
+    if dataset=="SVHN":
+        perAverageEpoch = 10
+    else:
+        perAverageEpoch = 20
+
     for groupNum in groupNumList:
         curveName = "group size " + str(groupNum)
         y = getErrsOfDiffMethodsWithDiffWidth("CNN", "relu", dataset,
@@ -213,11 +219,12 @@ def visualizeRGBImgResult():
         plt.plot(modelWidthList, y, color=colorMap[groupNum], label=curveName, linewidth=LINE_WIDTH)
 
     plt.ylim(0.1, 0.3)
-    plt.xticks(modelWidthList)
+    plt.xticks(modelWidthList, fontsize=FONT_SIZE)
+    plt.yticks([0.1,0.15,0.2,0.25,0.3], fontsize=FONT_SIZE)
 
     plt.ylabel("test error", fontsize=FONT_SIZE)
     plt.xlabel("model width", fontsize=FONT_SIZE)
-    plt.title(methodName[dropType], fontsize=FONT_SIZE)
+    plt.title(dataset, fontsize=FONT_SIZE)
 
     plt.legend(fontsize=FONT_SIZE)
     plt.show()
@@ -225,13 +232,15 @@ def visualizeRGBImgResult():
 ##########################################################################################################################################
 
 if __name__ == "__main__":
-    loadTestErr("./result/fix_full.csv")
-    loadTestErr("./result/fix_weight_avg_test.csv")
-    loadTestErr("./result/CIFAR_10.csv")
-    loadTestErr("./result/SVHN.csv")
-    printLowestErr()
-    print("\n" + "*" * 10)
-    #visualizeDiffMethods()
-    #visualizeWeightAverage()
-    visualizeCoverge()
-    #visualizeRGBImgResult()
+    # loadTestErr("./result/fix_full.csv")
+    # visualizeDiffMethods()
+
+    # loadTestErr("./result/CIFAR_10.csv")
+    # loadTestErr("./result/SVHN.csv")
+    # visualizeRGBImgResult()
+
+    loadTestErr("./result/wight_average_data.csv")
+    visualizeWeightAverage()
+
+
+    #visualizeCoverge()
