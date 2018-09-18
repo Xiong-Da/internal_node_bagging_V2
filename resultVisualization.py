@@ -48,7 +48,8 @@ def getTestErr(modelFunName, activateFunName, datasetName, modelWidth, dropoutTy
 import matplotlib
 import matplotlib.pyplot as plt
 
-colorMap = {1: "blue", 2: "green", 4: "orange", 8: "red"}
+colorMap = {1: "blue", 2: "green", 4: "orange", 8: "red",
+            "sigmoid":"blue","tanh":"green","relu":"orange"}
 methodName={"probOut":"method A","singleOut":"method B"}
 lineStyleMap={"probOut":'-', "singleOut":'--',64:"-",256:"--"}
 
@@ -112,7 +113,7 @@ def visualizeWeightAverage():
     batchSize = 256
     perAverageEpochList = [5,10,20,50,100,200]
 
-    modelWidth=1024
+    modelWidth=64
 
     for dropType in dropoutTypeList:
         for groupNum in groupNumList:
@@ -128,7 +129,7 @@ def visualizeWeightAverage():
     plt.yticks([0.01,0.02,0.03,0.04,0.05], fontsize=FONT_SIZE-2)
 
     plt.ylabel("test error", fontsize=FONT_SIZE)
-    plt.xlabel("wight average frequency(epochs)", fontsize=FONT_SIZE)
+    plt.xlabel("weight average frequency(epochs)", fontsize=FONT_SIZE)
     plt.title("model width "+str(modelWidth), fontsize=FONT_SIZE)
 
     plt.legend(fontsize=FONT_SIZE)
@@ -145,15 +146,19 @@ def getConvergeData( modelWidth, dropType, groupNum, keepProb, batchSize, perAve
     if dropType == "singleOut":
         keepProb=None
 
-    logDir = getDataSaveDir("MNIST", modelWidth, dropType, groupNum, keepProb, perAverageEpoch, batchSize)
-    logFilePath=None
-
-    for fileName in os.listdir(logDir):
-        if "txt" in fileName:
-            logFilePath=os.path.join(logDir,fileName)
-
-    if logFilePath is None:
-        raise Exception("no data in "+logDir)
+    logDir = getDataSaveDir("MNIST", modelWidth, "relu", dropType, groupNum, keepProb, perAverageEpoch, batchSize)
+    logFileName="MNIST_"+str(modelWidth)+"_"+str(dropType)+"_"+str(groupNum)+"_"+str(keepProb)+"_"+str(perAverageEpoch)+"_"+str(batchSize)+".txt"
+    logFilePath=os.path.join("./result",logFileName)
+    if os.path.exists(logFilePath)==False:
+        oldFilePath=None
+        for fileName in os.listdir(logDir):
+            if "txt" in fileName:
+                oldFilePath=os.path.join(logDir,fileName)
+        if oldFilePath is None:
+            raise Exception("no data in "+logDir)
+        with open(logFilePath,"w") as outF:
+            with open(oldFilePath,"r") as inF:
+                outF.writelines(inF.readlines())
 
     x=[]
     y=[]
@@ -179,12 +184,14 @@ def visualizeCoverge():
 
     for dropType in dropoutTypeList:
         for groupNum in groupNumList:
-            curveName = methodName[dropType]+", " + str(groupNum)
+            curveName = methodName[dropType]+", group size " + str(groupNum)
             x,y = getConvergeData( modelWidth, dropType, groupNum, keepProb, batchSize, perAverageEpoch)
             plt.plot(x, y, color=colorMap[groupNum], label=curveName, linewidth=LINE_WIDTH,linestyle=lineStyleMap[dropType])
 
-    plt.ylim(0.01, 0.05)
-    #plt.xticks()
+    plt.ylim(0.01, 0.03)
+
+    plt.yticks([0.01,0.02,0.03], fontsize=FONT_SIZE-2)
+    plt.xticks([0,10000,20000,30000,40000], fontsize=FONT_SIZE-2)
 
     plt.ylabel("test error",fontsize=FONT_SIZE)
     plt.xlabel("train step",fontsize=FONT_SIZE)
@@ -229,6 +236,46 @@ def visualizeRGBImgResult():
     plt.legend(fontsize=FONT_SIZE)
     plt.show()
 
+def getErrOfDiffGroups(modelFunName, activateFunName, datasetName, modelWidth, dropoutType,
+                                            groupNumList, keepProb, batchSize, perAverageEpoch):
+        errs = []
+        for groupNum in groupNumList:
+            err = getTestErr(modelFunName, activateFunName, datasetName, modelWidth, dropoutType, groupNum, keepProb,
+                             batchSize, perAverageEpoch)
+            errs.append(err)
+        return errs
+
+def visualizeActivationFun():
+    dropoutTypeList = ["probOut", "singleOut"]
+    activationFunList=["relu","sigmoid","tanh"]
+    groupNumList = [1, 2, 4]
+    keepProb = 0.5
+    batchSize = 256
+    perAverageEpochList = 10
+    modelWidth = 256
+
+    for dropType in dropoutTypeList:
+        for activationFun in activationFunList:
+            curveName = methodName[dropType] + ", " + str(activationFun)
+            y = getErrOfDiffGroups("fullConnected", activationFun, "MNIST",
+                                                    modelWidth, dropType, groupNumList, keepProb, batchSize,
+                                                    perAverageEpochList)
+            print(curveName + ":" + str(y))
+            plt.plot(groupNumList, y, color=colorMap[activationFun], label=curveName, linewidth=LINE_WIDTH,
+                     linestyle=lineStyleMap[dropType])
+
+    plt.ylim(0.012, 0.022)
+
+    plt.xticks(groupNumList, fontsize=FONT_SIZE - 2)
+    plt.yticks([0.012, 0.014, 0.016, 0.018, 0.020,0.022], fontsize=FONT_SIZE - 2)
+
+    plt.ylabel("test error", fontsize=FONT_SIZE)
+    plt.xlabel("group size", fontsize=FONT_SIZE)
+    plt.title("model width " + str(modelWidth), fontsize=FONT_SIZE)
+
+    plt.legend(fontsize=FONT_SIZE,loc=1)
+    plt.show()
+
 ##########################################################################################################################################
 
 if __name__ == "__main__":
@@ -239,8 +286,10 @@ if __name__ == "__main__":
     # loadTestErr("./result/SVHN.csv")
     # visualizeRGBImgResult()
 
-    loadTestErr("./result/wight_average_data.csv")
-    visualizeWeightAverage()
+    #loadTestErr("./result/wight_average_data.csv")
+    #visualizeWeightAverage()
 
+    loadTestErr("./result/activation_functions.csv")
+    visualizeActivationFun()
 
     #visualizeCoverge()

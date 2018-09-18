@@ -17,7 +17,7 @@ STARTLREANINGRATE=1e-3
 VALIDATE_RATE=0.2
 EPOCHSPERCHECK=10
 
-TEST_TIMES=3
+TEST_TIMES=5
 USE_AUTO_TUNER=False
 IS_RETRAIN_ON_ALL_TRAINSET=True
 ##############################################################
@@ -45,11 +45,12 @@ def checkDir(baseDir,dirList):
                 print(str(e))
     return dirPath
 
-def getDataSaveDir(datasetName,modelWidth, dropoutType, groupNum, keepProb,perAverageEpoch,batchSize):
-    return checkDir("./",["result",datasetName,str(dropoutType)+"_"+str(modelWidth)+"_"+str(groupNum)+"_"+str(keepProb)+"_"+str(perAverageEpoch)+"_"+str(batchSize)])
+def getDataSaveDir(datasetName,modelWidth, activateFunName, dropoutType, groupNum, keepProb,perAverageEpoch,batchSize):
+    return checkDir("./",["result",datasetName,
+                          str(dropoutType)+"_"+str(activateFunName)+"_"+str(modelWidth)+"_"+str(groupNum)+"_"+str(keepProb)+"_"+str(perAverageEpoch)+"_"+str(batchSize)])
 
-def getModelSavePath(datasetName,modelWidth, dropoutType, groupNum, keepProb,perAverageEpoch,batchSize):
-    baseDir=getDataSaveDir(datasetName,modelWidth, dropoutType, groupNum, keepProb,perAverageEpoch,batchSize)
+def getModelSavePath(datasetName,modelWidth, activateFunName, dropoutType, groupNum, keepProb,perAverageEpoch,batchSize):
+    baseDir=getDataSaveDir(datasetName,modelWidth, activateFunName, dropoutType, groupNum, keepProb,perAverageEpoch,batchSize)
     modelDir=checkDir(baseDir,["model"])
     return os.path.join(modelDir,"model")
 
@@ -73,7 +74,14 @@ def isNeedFlip(datasetName):
     return False
 
 def getActivateFun(activateFunName):
-    return tf.nn.relu
+    if activateFunName=="relu":
+        return tf.nn.relu
+    elif activateFunName=="sigmoid":
+        return tf.nn.sigmoid
+    elif activateFunName=="tanh":
+        return tf.nn.tanh
+
+    raise Exception("unkown activation function:"+str(activateFunName))
 
 def computErr(session, dataItertor, tensorMap):
     dataCount=0
@@ -159,7 +167,7 @@ def trainModel(session, trainDataItertor, validateDataIterator, tuner, tensorMap
 def testParam(modelFunName, activateFunName, datasetName, modelWidth, dropoutType, groupNum, keepProb, batchSize,perAverageEpoch):
     ###########################################
     #load data
-    logDir=getDataSaveDir(datasetName,modelWidth, dropoutType, groupNum, keepProb,perAverageEpoch,batchSize)
+    logDir=getDataSaveDir(datasetName, modelWidth, activateFunName, dropoutType, groupNum, keepProb,perAverageEpoch,batchSize)
     all_train_data, all_train_labels, test_data, test_labels=dataset.getDataset(datasetName, "./datasets")
 
     all_train_data=all_train_data.astype(np.float32)
@@ -235,16 +243,13 @@ def testParam(modelFunName, activateFunName, datasetName, modelWidth, dropoutTyp
     session = tf.Session(config=config)
     session.run([tf.global_variables_initializer()])
 
-    modelPath=getModelSavePath(datasetName,modelWidth, dropoutType, groupNum, keepProb,perAverageEpoch,batchSize)
+    modelPath=getModelSavePath(datasetName,modelWidth, activateFunName, dropoutType, groupNum, keepProb,perAverageEpoch,batchSize)
     errs=[]
     supConfigs=[]
 
     #globalAutoTuner = utils.GlobalLearningRateTuner(STARTLREANINGRATE)
     localAutoTuner=utils.LocalLearningRateTuner(STARTLREANINGRATE,maxDontSave=7)
     autoTuners=[localAutoTuner]
-
-    fixTuner1 = utils.getFixLearningRateTuner([10,10],[1e-3,1e-4],isEarlyStop=False)
-    supConfigs.append((fixTuner1, allTrainDataIterator,testDataIterator))
 
     #find train param base on validate data
     if USE_AUTO_TUNER:
@@ -257,6 +262,9 @@ def testParam(modelFunName, activateFunName, datasetName, modelWidth, dropoutTyp
 
             if IS_RETRAIN_ON_ALL_TRAINSET:
                 supConfigs.append((autoTuner.getFixTuner(),allTrainDataIterator,testDataIterator))
+    else:
+        fixTuner1 = utils.getFixLearningRateTuner([10, 10], [1e-3, 1e-4], isEarlyStop=False)
+        supConfigs.append((fixTuner1, allTrainDataIterator, testDataIterator))
 
     for tuner,trainIterator,validateIterator in supConfigs:
         session.run([tf.global_variables_initializer()])
@@ -305,21 +313,22 @@ def computeParamCombination(modelFunName, activateFunName, datasetName, modelWid
     return paramCombinationList
 
 def getMNISTParam():
+    activateFunctions=["relu","sigmoid","tanh"]
     datasetName = ["MNIST"]
-    modelWidth = [64,256,1024]
+    modelWidth = [256]
     dropoutType = ["probOut", "singleOut"]
-    groupNum = [2,4]
+    groupNum = [1,2,4]
     keepProb = [0.5]
     batchSize = [256]
-    perAverageEpoch=[5,10,20,50,100,200]
+    perAverageEpoch=[10]
 
-    return computeParamCombination(["fullConnected"],["relu"],
+    return computeParamCombination(["fullConnected"],activateFunctions,
                                    datasetName,modelWidth, dropoutType, groupNum, keepProb,batchSize,perAverageEpoch)
 
 def getRGBImageDatasetParam():
-    datasetName=["SVHN"]
+    datasetName=["CIFAR_10"]
     modelWidth=[0.25,0.5,1]
-    dropoutType=["probOut","singleOut"]
+    dropoutType=["singleOut"]
     groupNum=[1,2,4]
     keepProb=[0.5]
     batchSize=[256]

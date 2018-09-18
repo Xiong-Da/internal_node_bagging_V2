@@ -98,6 +98,12 @@ class AugmentDatasetLiterator:
         for batchImage,batchLabel in self.iterator.getNextBatch():
             yield augmentData(batchImage,self.needFlip), batchLabel
 
+    def getDatasetSize(self):
+        return self.iterator.getDatasetSize()
+
+    def getBatchSize(self):
+        return self.iterator.getBatchSize()
+
 #################################################################################
 
 class LocalLearningRateTuner():
