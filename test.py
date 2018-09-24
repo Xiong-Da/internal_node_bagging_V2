@@ -9,16 +9,16 @@ import models
 import utils
 
 #############################################################
-PARALLEL_RANK=8
-GPU_MEMORY_USE=0.6
+PARALLEL_RANK=1
+GPU_MEMORY_USE=0.8
 
 WEIGHT_DECAY=0
 STARTLREANINGRATE=1e-3
 VALIDATE_RATE=0.2
 EPOCHSPERCHECK=10
 
-TEST_TIMES=5
-USE_AUTO_TUNER=False
+TEST_TIMES=1
+USE_AUTO_TUNER=True
 IS_RETRAIN_ON_ALL_TRAINSET=True
 ##############################################################
 
@@ -313,9 +313,9 @@ def computeParamCombination(modelFunName, activateFunName, datasetName, modelWid
     return paramCombinationList
 
 def getMNISTParam():
-    activateFunctions=["relu","sigmoid","tanh"]
+    activateFunctions=["relu"]
     datasetName = ["MNIST"]
-    modelWidth = [256]
+    modelWidth = [64,128,256,512,1024]
     dropoutType = ["probOut", "singleOut"]
     groupNum = [1,2,4]
     keepProb = [0.5]
@@ -326,9 +326,9 @@ def getMNISTParam():
                                    datasetName,modelWidth, dropoutType, groupNum, keepProb,batchSize,perAverageEpoch)
 
 def getRGBImageDatasetParam():
-    datasetName=["CIFAR_10"]
+    datasetName=["CIFAR_10","SVHN"]
     modelWidth=[0.25,0.5,1]
-    dropoutType=["singleOut"]
+    dropoutType=["probOut", "singleOut"]
     groupNum=[1,2,4]
     keepProb=[0.5]
     batchSize=[256]
@@ -373,8 +373,8 @@ def workThread(getTaskFun,returnResultFun):
             print(str(e))
 
 def main():
-    allArgsList = getMNISTParam()
-    #allArgsList = getRGBImageDatasetParam()
+    #allArgsList = getMNISTParam()
+    allArgsList = getRGBImageDatasetParam()
     resultMap = {}
 
     print("\ntest param:")

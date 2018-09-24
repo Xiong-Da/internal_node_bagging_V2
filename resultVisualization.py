@@ -77,7 +77,7 @@ def visualizeDiffMethods():
     groupNumList=[1,2,4]
     keepProb=0.5
     batchSize=256
-    perAverageEpoch=20
+    perAverageEpoch=10
     
     dropType="singleOut"
     for groupNum in groupNumList:
@@ -113,7 +113,7 @@ def visualizeWeightAverage():
     batchSize = 256
     perAverageEpochList = [5,10,20,50,100,200]
 
-    modelWidth=64
+    modelWidth=256
 
     for dropType in dropoutTypeList:
         for groupNum in groupNumList:
@@ -123,14 +123,14 @@ def visualizeWeightAverage():
             print(curveName + ":" + str(y))
             plt.plot(perAverageEpochList, y, color=colorMap[groupNum], label=curveName, linewidth=LINE_WIDTH,linestyle=lineStyleMap[dropType])
 
-    plt.ylim(0.01, 0.05)
+    plt.ylim(0.01, 0.03)
 
     plt.xticks(perAverageEpochList[1:], fontsize=FONT_SIZE-2)
-    plt.yticks([0.01,0.02,0.03,0.04,0.05], fontsize=FONT_SIZE-2)
+    plt.yticks([0.01,0.02,0.03], fontsize=FONT_SIZE-2)
 
     plt.ylabel("test error", fontsize=FONT_SIZE)
     plt.xlabel("weight average frequency(epochs)", fontsize=FONT_SIZE)
-    plt.title("model width "+str(modelWidth), fontsize=FONT_SIZE)
+    plt.title("MNIST dataset, model width "+str(modelWidth), fontsize=FONT_SIZE)
 
     plt.legend(fontsize=FONT_SIZE)
     plt.show()
@@ -195,7 +195,7 @@ def visualizeCoverge():
 
     plt.ylabel("test error",fontsize=FONT_SIZE)
     plt.xlabel("train step",fontsize=FONT_SIZE)
-    plt.title("model width "+str(modelWidth),fontsize=FONT_SIZE)
+    plt.title("MNIST dataset, model width "+str(modelWidth),fontsize=FONT_SIZE)
 
     plt.legend(fontsize=FONT_SIZE)
     plt.show()
@@ -211,12 +211,12 @@ def visualizeRGBImgResult():
     batchSize = 256
 
     dropType = "singleOut"
-    dataset="CIFAR_10"
+    dataset="SVHN"
 
     if dataset=="SVHN":
         perAverageEpoch = 10
     else:
-        perAverageEpoch = 20
+        perAverageEpoch = 10
 
     for groupNum in groupNumList:
         curveName = "group size " + str(groupNum)
@@ -225,9 +225,14 @@ def visualizeRGBImgResult():
         print(curveName + ":" + str(y))
         plt.plot(modelWidthList, y, color=colorMap[groupNum], label=curveName, linewidth=LINE_WIDTH)
 
-    plt.ylim(0.1, 0.3)
-    plt.xticks(modelWidthList, fontsize=FONT_SIZE)
-    plt.yticks([0.1,0.15,0.2,0.25,0.3], fontsize=FONT_SIZE)
+    if dataset == "SVHN":
+        plt.ylim(0.03, 0.06)
+        plt.xticks(modelWidthList, fontsize=FONT_SIZE)
+        plt.yticks([0.03, 0.04, 0.05, 0.06], fontsize=FONT_SIZE)
+    else:
+        plt.ylim(0.1, 0.3)
+        plt.xticks(modelWidthList, fontsize=FONT_SIZE)
+        plt.yticks([0.1,0.15,0.2,0.25,0.3], fontsize=FONT_SIZE)
 
     plt.ylabel("test error", fontsize=FONT_SIZE)
     plt.xlabel("model width", fontsize=FONT_SIZE)
@@ -271,7 +276,7 @@ def visualizeActivationFun():
 
     plt.ylabel("test error", fontsize=FONT_SIZE)
     plt.xlabel("group size", fontsize=FONT_SIZE)
-    plt.title("model width " + str(modelWidth), fontsize=FONT_SIZE)
+    plt.title("MNIST dataset, model width " + str(modelWidth), fontsize=FONT_SIZE)
 
     plt.legend(fontsize=FONT_SIZE,loc=1)
     plt.show()
@@ -279,17 +284,18 @@ def visualizeActivationFun():
 ##########################################################################################################################################
 
 if __name__ == "__main__":
-    # loadTestErr("./result/fix_full.csv")
-    # visualizeDiffMethods()
+    #loadTestErr("./result/fix_full2.csv")
+    #visualizeDiffMethods()
 
     # loadTestErr("./result/CIFAR_10.csv")
     # loadTestErr("./result/SVHN.csv")
-    # visualizeRGBImgResult()
+    loadTestErr("./result/RGB2.csv")
+    visualizeRGBImgResult()
 
     #loadTestErr("./result/wight_average_data.csv")
     #visualizeWeightAverage()
 
-    loadTestErr("./result/activation_functions.csv")
-    visualizeActivationFun()
+    #loadTestErr("./result/activation_functions.csv")
+    #visualizeActivationFun()
 
     #visualizeCoverge()
